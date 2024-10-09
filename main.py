@@ -2,7 +2,8 @@ import pandas as pd
 import customtkinter as ctk
 from tkinter import filedialog
 import plotly.express as px
-
+import plotly.graph_objects as go
+import numpy as np
 
 class Finestra():
     
@@ -30,6 +31,15 @@ class Finestra():
 
         self.graficoButton = ctk.CTkButton(self.root, text="Visualizza Grafico", command=self.Grafico)
         self.graficoButton.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+
+        self.var2=ctk.CTkComboBox(self.root, values = self.variabili)
+        self.var2.grid(row=2, column=2, padx=10, pady=10)
+
+        self.var3=ctk.CTkComboBox(self.root, values = self.variabili)
+        self.var3.grid(row=2, column=3, padx=10, pady=10)
+
+        self.var4=ctk.CTkComboBox(self.root, values = self.variabili)
+        self.var4.grid(row=2, column=4, padx=10, pady=10)
              
     #apri una finestra per la selezione del file
     def FileInput(self):
@@ -55,9 +65,9 @@ class Finestra():
             else:
                 seen[col] += 1
                 if seen[col] == 1:
-                    colonne_rename.append(col + "NC")
+                    colonne_rename.append(col + "Normalized")
                 else:
-                    colonne_rename.append(col + f"NC{seen[col]}")
+                    colonne_rename.append(col + f"Normalized{seen[col]}")
 
         # Rinomina la colonna Sample Name
         nuove_colonne = list(self.df.columns[:index_C]) + colonne_rename
@@ -81,17 +91,40 @@ class Finestra():
         self.variabili = list(df_filtered.columns)
         #setta i valori della combobox
         self.comboBox.configure(values=self.variabili)
+        self.var2.configure(values=self.variabili)
+        self.var3.configure(values=self.variabili)
+        self.var4.configure(values=self.variabili)
 
     def Grafico(self):
         # Recupera la variabile selezionata dalla comboBox
-        variabile_selezionata = self.comboBox.get()
-        if variabile_selezionata:
-            # Crea un grafico interattivo usando Plotly
-            fig = px.line(self.df, x="Time (GMT 120 mins)", y=variabile_selezionata, title=f"Grafico della Variabile: {variabile_selezionata}")
-            fig.show()
-        else:
-            print("Nessuna variabile selezionata.")
-        #fai un grafico HTML della variabile selezionata
+        variabile_selezionata1 = self.comboBox.get()
+        variabile_selezionata2 = self.var2.get()
+        variabile_selezionata3 = self.var3.get()
+        variabile_selezionata4 = self.var4.get()
+        variabili_selezionate = [variabile_selezionata1, variabile_selezionata2, variabile_selezionata3, variabile_selezionata4]
+        variabili_selezionate = [v for v in variabili_selezionate if v]
+        print(variabili_selezionate)
+        fig = go.Figure()
+        for variabile_selezionata in variabili_selezionate:
+        # if variabile_selezionata:
+            fig.add_trace(go.Scatter(x=self.df["Time (GMT 120 mins)"], y=self.df[variabile_selezionata], mode='lines', name=variabile_selezionata))
+        #     # Calcola le statistiche
+        #     media = np.mean(self.df[variabile_selezionata])
+        #     mediana = np.median(self.df[variabile_selezionata])
+        #     deviazione_standard = np.std(self.df[variabile_selezionata])
+            
+        #     # Aggiungi le statistiche come annotazioni
+        #     fig.add_annotation(
+        #         xref="paper", yref="paper",
+        #         x=1.05, y=1 - 0.1 * variabili_selezionate.index(variabile_selezionata),
+        #         text=f"{variabile_selezionata}:<br>Media: {media:.2f}<br>Mediana: {mediana:.2f}<br>Dev. Std: {deviazione_standard:.2f}",
+        #         showarrow=False,
+        #         align="left"
+        #     )
+        
+        # fig.update_layout(margin=dict(r=200))  # Aggiungi margine per le annotazioni
+        fig.show()
+
         
         
 
