@@ -4,6 +4,7 @@ from tkinter import filedialog
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import os,json
 
 class Finestra():
     
@@ -23,23 +24,26 @@ class Finestra():
         self.Title=ctk.CTkLabel(self.root, text="Visauluzzazione Dati GC", font=("Arial", 20))
         self.Title.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
-        self.InputButton=ctk.CTkButton(self.root, text="File Input", command=self.FileInput)
+        self.InputButton=ctk.CTkButton(self.root, text="File Input CSV", command=self.FileInput)
         self.InputButton.grid(row=2, column=0, padx=10, pady=10)
 
+        self.InputButtonJson=ctk.CTkButton(self.root, text="Cartella Input JSON", command=self.FileInputJson)
+        self.InputButtonJson.grid(row=3, column=0, padx=10, pady=10)
+
         self.comboBox = ctk.CTkComboBox(self.root, values=self.variabili)
-        self.comboBox.grid(row=2, column=1, padx=10, pady=10)
+        self.comboBox.grid(row=4, column=10, padx=10, pady=10)
 
         self.graficoButton = ctk.CTkButton(self.root, text="Visualizza Grafico", command=self.Grafico)
-        self.graficoButton.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+        self.graficoButton.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
 
         self.var2=ctk.CTkComboBox(self.root, values = self.variabili)
-        self.var2.grid(row=2, column=2, padx=10, pady=10)
+        self.var2.grid(row=4, column=1, padx=10, pady=10)
 
         self.var3=ctk.CTkComboBox(self.root, values = self.variabili)
-        self.var3.grid(row=2, column=3, padx=10, pady=10)
+        self.var3.grid(row=4, column=2, padx=10, pady=10)
 
         self.var4=ctk.CTkComboBox(self.root, values = self.variabili)
-        self.var4.grid(row=2, column=4, padx=10, pady=10)
+        self.var4.grid(row=4, column=3, padx=10, pady=10)
              
     #apri una finestra per la selezione del file
     def FileInput(self):
@@ -125,7 +129,61 @@ class Finestra():
         # fig.update_layout(margin=dict(r=200))  # Aggiungi margine per le annotazioni
         fig.show()
 
-        
+    def FileInputJson(self):
+        # 1. Elenca tutti i file JSON nella cartella
+        cartella = filedialog.askdirectory()
+        file_json = [f for f in os.listdir(cartella) if f.endswith('.fusion-data')]
+
+        # 2. Preleva i dati da ciascun file JSON
+        dati = []
+        for file in file_json:
+            with open(os.path.join(cartella, file), 'r') as f:
+                df3 = json.load(f)
+                
+                # 3. Estrai i dati richiesti
+                moduli = ['moduleA:tcd', 'moduleB:tcd', 'moduleC:tcd']
+                time = df3['runTimeStamp']
+                
+                for modulo in moduli:
+                    for peak in df3['detectors'][modulo]['analysis']['peaks']:
+                        if 'label' in peak:
+                            a = {
+                                "Time": time,
+                                "Specie Chimica": peak['label'],
+                                "Concentrazione Normalizzata": peak['normalizedConcentration'],
+                                "Modulo": modulo
+                            }
+                            dati.append(a)
+
+        # 4. Crea un DataFrame
+        df = pd.DataFrame(dati)
+
+        # 5. Converti la colonna 'Time' in formato datetime
+        df['Time'] = pd.to_datetime(df['Time'])  # Assicurati che il formato del tempo sia corretto
+
+        # 6. Formatta la colonna 'Time' per mostrare solo giorno e ora
+        df['Time'] = df['Time'].dt.strftime('%Y-%m-%d %H:%M')
+
+        # 7. Rinomina la colonna 'Time' in 'Time (GMT 120 mins)'
+        df.rename(columns={'Time': 'Time (GMT 120 mins)'}, inplace=True)
+
+        # 8. Pivot il DataFrame per ottenere le specie chimiche come colonne
+        df_pivot = df.pivot_table(index='Time (GMT 120 mins)', columns='Specie Chimica', values='Concentrazione Normalizzata')
+        print(df_pivot.columns)
+        # 9. Ordina i dati in funzione del tempo
+        df_pivot = df_pivot.sort_index()
+        df_pivot.reset_index(inplace=True)
+        print("Import json")
+        self.df = df_pivot
+
+        # 10. Ottieni le colonne del DataFrame
+        variabili = self.df.columns
+
+        # 11. Configura le comboBox con le variabili
+        self.comboBox.configure(values=list(variabili))
+        self.var2.configure(values=list(variabili))
+        self.var3.configure(values=list(variabili))
+        self.var4.configure(values=list(variabili))
         
 
 
